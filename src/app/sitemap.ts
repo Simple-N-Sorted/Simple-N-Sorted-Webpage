@@ -1,0 +1,12 @@
+import type { MetadataRoute } from "next";
+import { products } from "@/data/products";
+import { policies } from "./policies/policies";
+import { site } from "@/lib/site";
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const pages = ["", "/shop", "/about", "/contact", ...policies.map((p) => `/policies/${p.slug}`)];
+  return [
+    ...pages.map((p) => ({ url: `${site.url}${p}` })),
+    ...products.map((p) => ({ url: `${site.url}/products/${p.slug}` })),
+  ];
+}
