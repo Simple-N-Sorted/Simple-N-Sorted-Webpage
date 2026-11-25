@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { getProduct } from "@/data/products";
+import { getProduct, isListed, type ListedProduct } from "@/data/products";
 import { formatPrice } from "@/lib/format";
 import { MAX_QTY, removeFromCart, setQty, useCart } from "@/lib/cart";
 import { ProductArt } from "./ProductArt";
@@ -15,7 +15,7 @@ export function CartView() {
 
   const items = lines
     .map((l) => ({ line: l, product: getProduct(l.slug) }))
-    .filter((x): x is { line: typeof x.line; product: NonNullable<typeof x.product> } => Boolean(x.product));
+    .filter((x): x is { line: typeof x.line; product: ListedProduct } => x.product != null && isListed(x.product));
   const subtotal = items.reduce((s, { line, product }) => s + line.qty * product.price, 0);
 
   async function checkout() {

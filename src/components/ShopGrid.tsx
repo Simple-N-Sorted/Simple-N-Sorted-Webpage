@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { collections, products, type CollectionId } from "@/data/products";
+import { collections, listedProducts, type CollectionId } from "@/data/products";
 import { ProductCard } from "./ProductCard";
 
 export function ShopFilters({ active }: { active?: CollectionId }) {
@@ -36,7 +36,7 @@ export function ShopGrid() {
   const params = useSearchParams();
   const raw = params.get("collection");
   const active = collections.find((c) => c.id === raw);
-  const list = active ? products.filter((p) => p.collection === active.id) : products;
+  const list = active ? listedProducts.filter((p) => p.collection === active.id) : listedProducts;
 
   return (
     <>
@@ -62,7 +62,7 @@ export function ShopGridFallback() {
     <>
       <ShopFilters />
       <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-        {products.map((p) => (
+        {listedProducts.map((p) => (
           <ProductCard key={p.slug} product={p} />
         ))}
       </div>
