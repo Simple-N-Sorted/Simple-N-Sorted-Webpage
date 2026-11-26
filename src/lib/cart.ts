@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { getProduct, isListed } from "@/data/products";
 import { MAX_QTY } from "./cart-limits";
 
 export { MAX_QTY };
@@ -61,6 +62,8 @@ function subscribe(cb: () => void) {
 
 
 export function addToCart(slug: string, qty = 1) {
+  const product = getProduct(slug);
+  if (!product || !isListed(product)) return;
   const lines = [...read()];
   const i = lines.findIndex((l) => l.slug === slug);
   if (i >= 0) lines[i] = { slug, qty: Math.min(MAX_QTY, lines[i].qty + qty) };

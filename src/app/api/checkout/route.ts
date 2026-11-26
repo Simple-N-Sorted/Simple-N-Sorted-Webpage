@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getProduct } from "@/data/products";
+import { getProduct, isListed } from "@/data/products";
 import { MAX_QTY } from "@/lib/cart-limits";
 
 type Body = { items?: { slug?: unknown; qty?: unknown }[] };
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
   for (const item of body.items ?? []) {
     const product = typeof item.slug === "string" ? getProduct(item.slug) : undefined;
     const qty = Number(item.qty);
-    if (!product || !Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) continue;
+    // Drafts have no price and are never sent to Stripe. No product or price IDs are used.
+    if (!product || !isListed(product) || !Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) continue;
     lineItems.push({
       quantity: qty,
       price_data: {

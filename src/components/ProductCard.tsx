@@ -25,15 +25,21 @@ export function ProductCard({ product }: { product: Product }) {
         </h3>
         <p className="text-sm text-muted">{product.summary}</p>
         <p className="mt-auto pt-3 text-sm font-semibold text-ink">
-          {formatPrice(product.price)}
-          {product.compareAtPrice && (
-            <span className="ml-2 font-normal text-muted line-through">
-              <span className="sr-only">was </span>
-              {formatPrice(product.compareAtPrice)}
-            </span>
+          {product.price == null ? (
+            "Price coming soon"
+          ) : (
+            <>
+              {formatPrice(product.price)}
+              {product.compareAtPrice != null ? (
+                <span className="ml-2 font-normal text-muted line-through">
+                  <span className="sr-only">was </span>
+                  {formatPrice(product.compareAtPrice)}
+                </span>
+              ) : null}
+            </>
           )}
           <span className="ml-2 rounded bg-sand px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted uppercase">
-            Sample
+            {product.draft ? "Draft" : "Sample"}
           </span>
         </p>
       </div>

@@ -8,6 +8,10 @@
  * To add a product: copy one entry, give it a unique `slug`, set the
  * `collection`, a price in cents, and pick an `art` style for the
  * placeholder illustration (or add a real `image` path later).
+ *
+ * To keep a product off the shop, homepage, sitemap, and checkout until
+ * it is ready, set `draft: true` and `price: null`. The page stays at
+ * `/products/[slug]` for review and is marked noindex.
  */
 
 export type CollectionId = "kitchen-pantry" | "closet" | "bath";
@@ -31,19 +35,36 @@ export type ArtKind =
   | "hooks"
   | "caddy";
 
-export type Product = {
+/** A labeled photo slot. `todo` is shown on the placeholder until a real photo exists. */
+export type ImageSlot = {
+  id: string;
+  label: string;
+  /** Alt text for the placeholder. No supplier photo is used. */
+  alt: string;
+  todo: string;
+  hero?: boolean;
+};
+
+type ProductFields = {
   slug: string;
   name: string;
   collection: CollectionId;
-  /** Price in US cents. */
-  price: number;
   /** Optional original price in US cents, shown struck through. */
   compareAtPrice?: number;
+  /**
+   * Display-only note while `price` is null, such as a target range.
+   * Not a chargeable amount and never sent to Stripe.
+   */
+  pricePlaceholder?: string;
   summary: string;
   description: string;
   features: string[];
   dimensions: string;
+  /** Optional, when the listing names a color. */
+  color?: string;
   material: string;
+  /** Optional display string. Mark an unverified figure with [confirm]. */
+  weight?: string;
   /** Typical supplier handling + transit time, shown on the product page. */
   shipsIn: string;
   featured?: boolean;
@@ -51,9 +72,35 @@ export type Product = {
   art: ArtKind;
   /** Optional real image path (e.g. "/products/my-product.jpg") for later. */
   image?: string;
+  /** Placeholder photo slots used instead of `art` when real photos are not ready. */
+  imageSlots?: ImageSlot[];
   /** True for all placeholder products. Remove when using real products. */
   sample: true;
 };
+
+/** A product that can appear in the shop and be checked out. */
+export type ListedProduct = ProductFields & {
+  draft?: false;
+  /** Price in US cents. */
+  price: number;
+};
+
+/**
+ * Unpublished product. Hidden from the shop, homepage, related products,
+ * sitemap, and checkout. The page stays reachable by direct URL and is noindex.
+ * Leave `price` null until a real retail price is set.
+ */
+export type DraftProduct = ProductFields & {
+  draft: true;
+  /** Unset until the retail price is confirmed. Never sent to Stripe. */
+  price: null;
+};
+
+export type Product = ListedProduct | DraftProduct;
+
+export function isListed(product: Product): product is ListedProduct {
+  return product.draft !== true;
+}
 
 export const collections: Collection[] = [
   {
@@ -163,6 +210,67 @@ export const products: Product[] = [
     material: "BPA-free plastic",
     shipsIn: "Ships in 1–3 business days",
     art: "turntable",
+    sample: true,
+  },
+  // DRAFT — not for sale and not listed. Direct URL only; noindex.
+  // Sourcing reference (do not show to customers, and do not contact or integrate the supplier):
+  // Doba item D01027RZC52, supplier ManifeststoreLLC,
+  // https://www.doba.com/product/CNQpeOcBDFvP/dropshipping-silverware-drawer-organizer-expandable-utensil-tray-for-kitchen-bpa-free-flatware-and-cutlery-holder-adjustable-plastic-storage-for-spoons-forks-knives-11-18-x-14-black.html
+  // Wholesale cost is not known yet. The $24–29 figure is a placeholder target only.
+  // Leave `price` null until then. No Stripe product or price IDs.
+  {
+    slug: "expandable-utensil-tray",
+    name: "Expandable Utensil Tray",
+    collection: "kitchen-pantry",
+    draft: true,
+    price: null,
+    pricePlaceholder: "TODO: about $24–29",
+    summary:
+      "A black BPA-free plastic tray that expands from 11 to 18 inches wide and holds spoons, forks, and knives.",
+    description:
+      "Slide this black tray from 11 to 18 inches wide until it fits the drawer. It is 14 inches deep and holds spoons, forks, and knives, so flatware has a place even in a small kitchen. The tray is BPA-free plastic and weighs about 1 lb [confirm].",
+    features: [
+      "Expands from 11 to 18 in wide",
+      "14 in deep",
+      "Black",
+      "BPA-free plastic",
+      "About 1 lb [confirm]",
+      "Holds spoons, forks, and knives",
+      "Adjusts to fit the drawer",
+    ],
+    dimensions: "11–18 in wide × 14 in deep",
+    color: "Black",
+    material: "BPA-free plastic",
+    weight: "About 1 lb [confirm]",
+    shipsIn: "Ships from a US supplier. Delivery in about 3–5 days. No minimum order.",
+    art: "tray",
+    imageSlots: [
+      {
+        id: "hero",
+        label: "Hero",
+        alt: "Placeholder for a hero photo of the Expandable Utensil Tray. TODO: add a hero photo of the tray.",
+        todo: "TODO: add a hero photo of the tray.",
+        hero: true,
+      },
+      {
+        id: "expanded-closed",
+        label: "Expanded and closed",
+        alt: "Placeholder for a photo of the Expandable Utensil Tray expanded and closed. TODO: add that photo.",
+        todo: "TODO: add a photo of the tray expanded and closed.",
+      },
+      {
+        id: "in-drawer",
+        label: "In a drawer",
+        alt: "Placeholder for a photo of the Expandable Utensil Tray in a kitchen drawer. TODO: add that photo.",
+        todo: "TODO: add an in-drawer photo.",
+      },
+      {
+        id: "top-down",
+        label: "Top-down",
+        alt: "Placeholder for a top-down photo of the Expandable Utensil Tray. TODO: add that photo.",
+        todo: "TODO: add a top-down photo.",
+      },
+    ],
     sample: true,
   },
 
@@ -287,8 +395,11 @@ export function getCollection(id: string): Collection | undefined {
   return collections.find((c) => c.id === id);
 }
 
-export function productsIn(id: CollectionId): Product[] {
-  return products.filter((p) => p.collection === id);
+/** Products shown in the shop, on the homepage, in related rows, and in the sitemap. */
+export const listedProducts = products.filter(isListed);
+
+export function productsIn(id: CollectionId): ListedProduct[] {
+  return listedProducts.filter((p) => p.collection === id);
 }
 
-export const featuredProducts = products.filter((p) => p.featured);
+export const featuredProducts = listedProducts.filter((p) => p.featured);
